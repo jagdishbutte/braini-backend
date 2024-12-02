@@ -71,30 +71,38 @@ app.post("/api/v1/content", userMiddleware, async (req, res) => {
 
 app.get("/api/v1/content", userMiddleware, async (req, res) => {
   const userId = req.userId;
-  const content = await contentModel.find({
-     userId: userId
-  }).populate("userId", "username");
+  const content = await contentModel
+    .find({
+      userId: userId,
+    })
+    .populate("userId", "username");
 
   res.json({
-    content
+    content,
   });
 });
 
 app.delete("/api/v1/content", userMiddleware, async (req, res) => {
   const contentId = req.body.contentId;
-  await contentModel.deleteMany({
-    contentId,
+
+  if (!contentId) {
+    res.status(400).json({ message: "Content ID is required" });
+    return;
+  }
+
+  const result = await contentModel.deleteMany({
+    _id: contentId,
     userId: req.userId,
   });
 
-  res.json({
-    message: "Deleted",
-  });
+  if (result.deletedCount === 0) {
+    res.status(404).json({ message: "Content not found or unauthorized" });
+  } else {
+    res.json({ message: "Deleted" });
+  }
 });
 
-// Yet to understand
-
-app.post("/api/v1/brain/share", userMiddleware, async (req, res) => {
+app.post("/api/v1/share", userMiddleware, async (req, res) => {
   const share = req.body.share;
   if (share) {
     const existingLink = await LinkModel.findOne({
@@ -127,7 +135,7 @@ app.post("/api/v1/brain/share", userMiddleware, async (req, res) => {
   }
 });
 
-app.get("/api/v1/brain/:shareLink", async (req, res) => {
+app.get("/api/v1/share/:shareLink", async (req, res) => {
   const hash = req.params.shareLink;
 
   const link = await LinkModel.findOne({

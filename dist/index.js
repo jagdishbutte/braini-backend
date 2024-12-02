@@ -72,25 +72,33 @@ app.post("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter
 }));
 app.get("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.userId;
-    const content = yield db_1.contentModel.find({
-        userId: userId
-    }).populate("userId", "username");
+    const content = yield db_1.contentModel
+        .find({
+        userId: userId,
+    })
+        .populate("userId", "username");
     res.json({
-        content
+        content,
     });
 }));
 app.delete("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const contentId = req.body.contentId;
-    yield db_1.contentModel.deleteMany({
-        contentId,
+    if (!contentId) {
+        res.status(400).json({ message: "Content ID is required" });
+        return;
+    }
+    const result = yield db_1.contentModel.deleteMany({
+        _id: contentId,
         userId: req.userId,
     });
-    res.json({
-        message: "Deleted",
-    });
+    if (result.deletedCount === 0) {
+        res.status(404).json({ message: "Content not found or unauthorized" });
+    }
+    else {
+        res.json({ message: "Deleted" });
+    }
 }));
-// Yet to understand
-app.post("/api/v1/brain/share", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post("/api/v1/share", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const share = req.body.share;
     if (share) {
         const existingLink = yield db_1.LinkModel.findOne({
@@ -120,7 +128,7 @@ app.post("/api/v1/brain/share", middleware_1.userMiddleware, (req, res) => __awa
         });
     }
 }));
-app.get("/api/v1/brain/:shareLink", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.get("/api/v1/share/:shareLink", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const hash = req.params.shareLink;
     const link = yield db_1.LinkModel.findOne({
         hash,
