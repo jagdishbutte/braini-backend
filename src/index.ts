@@ -4,9 +4,11 @@ import { contentModel, LinkModel, userModel } from "./db";
 import { JWT_PASSWORD } from "./config";
 import { userMiddleware } from "./middleware";
 import { random } from "./utils";
+import cors from "cors";
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 app.post("/api/v1/signup", async (req, res) => {
   const username = req.body.username;
@@ -54,10 +56,12 @@ app.post("/api/v1/signin", async (req, res) => {
 });
 
 app.post("/api/v1/content", userMiddleware, async (req, res) => {
+  const title = req.body.title;
   const link = req.body.link;
   const type = req.body.type;
 
   await contentModel.create({
+    title,
     link,
     type,
     userId: req.userId,
@@ -70,16 +74,22 @@ app.post("/api/v1/content", userMiddleware, async (req, res) => {
 });
 
 app.get("/api/v1/content", userMiddleware, async (req, res) => {
-  const userId = req.userId;
-  const content = await contentModel
-    .find({
-      userId: userId,
-    })
-    .populate("userId", "username");
+  try {
+    const userId = req.userId;
+    const content = await contentModel
+      .find({
+        userId: userId,
+      })
+      .populate("userId", "username");
 
-  res.json({
-    content,
-  });
+    res.json({
+      content,
+    });
+  } catch (error) {
+    console.error("Error fetching content:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+  
 });
 
 app.delete("/api/v1/content", userMiddleware, async (req, res) => {
